@@ -24,4 +24,4 @@ Example filter commands:
 
 
 Screenshots:
-![Alt text](http://s5.postimg.org/4kr2vrr2f/Screenshot.png)
+![Alt text](http://s5.postimg.org/wbb3csfrb/Screenshot.png)
