@@ -1,0 +1,444 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package coffeecia.java.UI;
+
+import coffeecia.java.CoffeeCIA_MAIN;
+import coffeecia.java.tools.Builder;
+import coffeecia.java.tools.Downloader;
+import coffeecia.java.tools.Ticket;
+import coffeecia.java.tools.XMLTitleList;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.table.AbstractTableModel;
+
+/**
+ *
+ * @author Alexander
+ */
+public class TitlesTableModel extends AbstractTableModel {
+    final private String[] columnNames = { "TitleID", "ConsoleID", "Type", "Preinstalled", "Build", "Personal", "Patch", "Ignore", "Download", "Status" };
+    final private String[] columnNamesXML = {"Title", "TitleID", "ConsoleID", "Type", "Preinstalled", "Build", "Personal", "Patch", "Ignore", "Download", "Status" };
+    
+    private XMLTitleList xmlTitles = null;
+    private boolean usingXML = false;
+    
+    public TitlesTableModel(XMLTitleList xmlTitles){ this.setXMLTitles(xmlTitles); }
+    
+    public TitlesTableModel(){}
+    
+    private class Entry{
+        public Ticket ticket;
+        public boolean build=true,preinstalled=false,personal=false,patch=false,ignore=false,download=true;
+        public String status="";
+        public String title = "";
+    }
+    
+    private final ArrayList<Entry> entries = new ArrayList<>();
+    
+    public void setXMLTitles(XMLTitleList xmlTitles){
+        this.usingXML = true;
+        this.xmlTitles = xmlTitles;
+        this.fireTableDataChanged();
+    }
+    
+    public void addEntry(Ticket entry){
+        Entry e = new Entry();
+        e.ticket = entry;
+        
+        e.status = "Ready";
+        
+        if (entry.consoleIDStr.equals("00000000")) e.preinstalled = true;
+        
+        switch (entry.type){
+            case System:
+            case DSiSystemApp:
+            case DSiSystemDataArchives:
+            case Mystery:
+                e.ignore = true;
+                e.build = false;
+                e.download = false;
+                break;
+            case Demo:
+            case DLC:
+                e.patch = true;
+        }
+        
+        if (entry.badTicket){
+            e.ignore = true;
+            e.build = false;
+            e.download = false;
+            e.status = "Bad Ticket. (Ignored)";
+        }
+        
+        if (this.usingXML) e.title = xmlTitles.getTitle(entry.titleID);
+        
+        entries.add(e);
+        fireTableRowsInserted(entries.size() - 1, entries.size() - 1);
+    }
+    
+    public void clear(){
+        entries.clear();
+        this.fireTableDataChanged();
+    }
+    
+    @Override
+    public int getRowCount() { return entries.size(); }
+
+    @Override
+    public int getColumnCount() {
+        if (usingXML) return columnNamesXML.length;
+        return columnNames.length;
+    }
+
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
+        if (usingXML){
+            switch (columnIndex){
+                case 0:  //title
+                    return this.entries.get(rowIndex).title;
+                case 1:  //titleid
+                    return this.entries.get(rowIndex).ticket.titleIDStr;
+                case 2:  //consoleid
+                    return this.entries.get(rowIndex).ticket.consoleIDStr;
+                case 3:  //type
+                    return this.entries.get(rowIndex).ticket.type;
+                case 4:  //preinstalled
+                    return this.entries.get(rowIndex).preinstalled;
+                case 5:  //build
+                    return this.entries.get(rowIndex).build;
+                case 6:  //personal
+                    return this.entries.get(rowIndex).personal;
+                case 7:  //patch
+                    return this.entries.get(rowIndex).patch;
+                case 8:  //ignore
+                    return this.entries.get(rowIndex).ignore;
+                case 9:  //download
+                    return this.entries.get(rowIndex).download;
+                case 10:  //status
+                    return this.entries.get(rowIndex).status;
+            }
+            return null;
+        }
+        switch (columnIndex){
+            case 0:  //titleid
+                return this.entries.get(rowIndex).ticket.titleIDStr;
+            case 1:  //consoleid
+                return this.entries.get(rowIndex).ticket.consoleIDStr;
+            case 2:  //type
+                return this.entries.get(rowIndex).ticket.type;
+            case 3:  //preinstalled
+                return this.entries.get(rowIndex).preinstalled;
+            case 4:  //build
+                return this.entries.get(rowIndex).build;
+            case 5:  //personal
+                return this.entries.get(rowIndex).personal;
+            case 6:  //patch
+                return this.entries.get(rowIndex).patch;
+            case 7:  //ignore
+                return this.entries.get(rowIndex).ignore;
+            case 8:  //download
+                return this.entries.get(rowIndex).download;
+            case 9:  //status
+                return this.entries.get(rowIndex).status;
+        }
+        return null;
+    }
+    
+    @Override
+    public boolean isCellEditable(int row, int col) {
+        if (usingXML){
+            if (col < 5) return false;
+            if (col == 10) return false;
+            return true;
+        }
+        if (col < 4) return false;
+        if (col == 9) return false;
+        return true;
+    }
+    
+    @Override
+    public String getColumnName(int col) {
+        if (usingXML) return columnNamesXML[col];
+        return columnNames[col];
+    }
+    
+    @Override
+    public Class getColumnClass(int c) {
+        if (usingXML){
+            switch (c){
+                case 0:  //Title
+                    return String.class;
+                case 1:  //TitleID
+                    return String.class;
+                case 2:  //ConsoleID
+                    return String.class;
+                case 3:  //Type
+                    return String.class;
+                case 4:  //preinstalled
+                    return Boolean.class;
+                case 5:  //build
+                    return Boolean.class;
+                case 6:  //personal
+                    return Boolean.class;
+                case 7:  //patch
+                    return Boolean.class;
+                case 8:  //ignore
+                    return Boolean.class;
+                case 9:  //download
+                    return Boolean.class;
+                case 10:  //status
+                    return String.class;
+            }
+            return null;
+        }
+        switch (c){
+            case 0:  //TitleID
+                return String.class;
+            case 1:  //ConsoleID
+                return String.class;
+            case 2:  //Type
+                return String.class;
+            case 3:  //preinstalled
+                return Boolean.class;
+            case 4:  //build
+                return Boolean.class;
+            case 5:  //personal
+                return Boolean.class;
+            case 6:  //patch
+                return Boolean.class;
+            case 7:  //ignore
+                return Boolean.class;
+            case 8:  //download
+                return Boolean.class;
+            case 9:  //status
+                return String.class;
+        }
+        return null;
+    }
+    
+    @Override
+    public void setValueAt(Object value, int row, int col) {
+        Entry e = entries.get(row);
+        if (usingXML){
+            switch (col){
+                case 5:  //build
+                    e.build=(boolean) value;
+                    break;
+                case 6:  //personal
+                    e.personal=(boolean) value;
+                    break;
+                case 7:  //patch
+                    e.patch=(boolean) value;
+                    break;
+                case 8:  //ignore
+                    e.ignore=(boolean) value;
+                    e.download=!(boolean) value;
+                    this.fireTableCellUpdated(row, col+1);
+                    break;
+                case 9:  //download
+                    e.download=(boolean) value;
+                    e.ignore=!(boolean) value;
+                    this.fireTableCellUpdated(row, col-1);
+                    break;
+                case 10:  //status
+                    e.status=(String) value;
+                    break;
+            }
+        }else{
+            switch (col){
+                case 4:  //build
+                    e.build=(boolean) value;
+                    break;
+                case 5:  //personal
+                    e.personal=(boolean) value;
+                    break;
+                case 6:  //patch
+                    e.patch=(boolean) value;
+                    break;
+                case 7:  //ignore
+                    e.ignore=(boolean) value;
+                    e.download=!(boolean) value;
+                    this.fireTableCellUpdated(row, col+1);
+                    break;
+                case 8:  //download
+                    e.download=(boolean) value;
+                    e.ignore=!(boolean) value;
+                    this.fireTableCellUpdated(row, col-1);
+                    break;
+                case 9:  //status
+                    e.status=(String) value;
+                    break;
+            }
+        }
+        this.fireTableCellUpdated(row, col);
+        entries.set(row, e);
+    }
+    
+    private boolean running=false;
+    private final int runningSize = 5;
+    private final static Object notifyObj = new Object();
+    public void execute(){
+        if (this.running) return;
+        
+        this.running = true;
+        
+        Logger.getGlobal().log(Level.INFO, "Beginning download.");
+        
+        //manager thread - separate it from ui.
+        new Thread(new Runnable(){
+            @Override
+            public void run() {
+                ArrayList<Entry> toExecute = new ArrayList<>();
+                ArrayList<workerThread> runningWorkers = new ArrayList<>();
+                entries.forEach((e)->{toExecute.add(e);});
+                
+                //dispatcher thread
+                new Thread(() -> {
+                    while (!toExecute.isEmpty()){
+                        while (runningWorkers.size()<runningSize){
+                            Entry eT = toExecute.remove(0);
+                            workerThread wT = new workerThread(eT,runningWorkers);
+                            synchronized (notifyObj) {
+                                runningWorkers.add(wT);
+                                wT.start();
+                            }
+                        }
+                        try { synchronized(notifyObj) { notifyObj.wait(); } } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                        //runningWorkers.forEach((wT)->{ if (!wT.running) runningWorkers.remove(wT); }); //remove any working threads that are done.
+                    }
+                    
+                    //wating for the remaining workers to finish.
+                    while(!runningWorkers.isEmpty()){
+                        
+                            //runningWorkers.forEach((wT)->{ if (!wT.running) runningWorkers.remove(wT); }); //remove any working threads that are done.
+                            //try { synchronized(notifyObj) { notifyObj.wait(); } } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                        try { Thread.sleep(10); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                    }
+                }).start();
+                
+                Logger.getGlobal().log(Level.INFO, "Download finished.");
+                running = false;
+            }
+        }).start();
+    }
+    
+    private class workerThread extends Thread {
+        Entry e;
+        public boolean running = true;
+        public boolean error = false;
+        private ArrayList a;
+        
+        public workerThread(Entry e, ArrayList a){
+            this.e = e;
+            this.a = a;
+        }
+        
+        private void updateStatus(String status){
+            e.status = status;
+            fireTableDataChanged();
+        }
+        
+        @Override
+        public void run(){
+            if (e.ignore){
+                updateStatus("Ignored");
+                running = false;
+                synchronized(notifyObj){
+                    a.remove(this);
+                    notifyObj.notifyAll();
+                }
+                return;
+            }
+            
+            if (e.ticket.badTicket){
+                updateStatus("Bad Ticket. (Ignored)");
+                running = false;
+                synchronized(notifyObj){ 
+                    a.remove(this);
+                    notifyObj.notifyAll();
+                }
+                return;
+            }
+            
+            if (e.patch && (e.ticket.type == Ticket.Type.DLC || e.ticket.type == Ticket.Type.Demo)) e.ticket.patch();
+            if (e.personal) e.ticket.blankIDs();
+            
+            if (e.download){
+                updateStatus("Prepping download.");
+                Downloader d = new Downloader(e.ticket);
+                
+                //Download thread
+                Thread dT = new Thread(() -> {
+                    try {
+                        d.download(CoffeeCIA_MAIN.buildDir);
+                    } catch (IOException ex) {
+                        Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex);
+                        error = true;
+                    }
+                });
+                dT.start();
+                
+                //update status
+                boolean dStatus = false;
+                while(!dStatus){
+                    switch(d.currStatus()){
+                        case WAITING:
+                            updateStatus("Waiting to download.");
+                            break;
+                        case PREP_CETK:
+                            updateStatus("Preparing cetk...");
+                            break;
+                        case CETK:
+                            updateStatus("Downloading cetk...");
+                            break;
+                        case PREP_TMD:
+                            updateStatus("Preparing tmd...");
+                            break;
+                        case TMD:
+                            updateStatus("Downloading tmd...");
+                            break;
+                        case PREP_CID:
+                            updateStatus("Preparing to download cID's...");
+                            break;
+                        case CID:
+                            updateStatus("Downloading " + (d.currCID()+1) + " of " + d.numCID() + " cID's.  " + d.downCID() + " of " + d.fsCID());
+                            break;
+                        case DONE:
+                        case ERROR:
+                        default:
+                            dStatus = true;
+                    }
+                    try { Thread.sleep(10); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                }
+                
+                if (d.currStatus() == Downloader.Status.ERROR) this.error = true;
+                
+                try { dT.join(); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+            }
+            
+            if (e.build && !this.error){
+                updateStatus("Building...");
+                Builder b = new Builder(e.ticket);
+                try {
+                    b.build(CoffeeCIA_MAIN.buildDir, CoffeeCIA_MAIN.ciaDir);
+                } catch (IOException | InterruptedException ex) {
+                    Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex);
+                    this.error = true;
+                }
+            }
+            
+            if (!this.error) updateStatus("DONE!");
+            else updateStatus("Error!");
+            running = false;
+            synchronized(notifyObj){
+                notifyObj.notifyAll();
+                a.remove(this);
+            }
+        }
+    }
+}
