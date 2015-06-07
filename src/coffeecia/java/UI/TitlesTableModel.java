@@ -9,11 +9,14 @@ import coffeecia.java.CoffeeCIA_MAIN;
 import coffeecia.java.tools.Builder;
 import coffeecia.java.tools.Downloader;
 import coffeecia.java.tools.Ticket;
+import coffeecia.java.tools.Util;
 import coffeecia.java.tools.XMLTitleList;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.swing.table.AbstractTableModel;
 
 /**
@@ -36,6 +39,17 @@ public class TitlesTableModel extends AbstractTableModel {
         public boolean build=true,preinstalled=false,personal=false,patch=false,ignore=false,download=true;
         public String status="";
         public String title = "";
+        
+        public int getBitmask(){
+            int ret = 0b000000;
+            if (build) ret |= 0b000001;
+            if (preinstalled) ret |= 0b000010;
+            if (personal) ret |= 0b000100;
+            if (patch) ret |= 0b001000;
+            if (ignore) ret |= 0b010000;
+            if (download) ret |= 0b100000;
+            return ret;
+        }
     }
     
     private final ArrayList<Entry> entries = new ArrayList<>();
@@ -439,6 +453,286 @@ public class TitlesTableModel extends AbstractTableModel {
                 notifyObj.notifyAll();
                 a.remove(this);
             }
+        }
+    }
+    
+    private enum FilterState {NONE,WHERE,SET,IGNORE};
+    public void filter(String str){
+        Filter f = new Filter();
+        FilterState fs = FilterState.NONE;
+        
+        //get arguments
+        // <editor-fold defaultstate="collapsed" desc="setup filter">  
+        Scanner s = new Scanner(str).useDelimiter(" ");
+        
+        String first = s.next();
+        switch (first){
+            case "WHERE":
+                fs = FilterState.WHERE;
+                break;
+            case "SET":
+                fs = FilterState.SET;
+                break;
+            case "IGNORE":
+                String i = s.next();
+                if (i.toLowerCase().equals("all")) f.ignoreALL = true;
+                else f.ignore = Pattern.compile(i);
+                break;
+            default:
+                if (first.toLowerCase().equals("all")) f.titleALL = true;
+                else f.find.titleid = Pattern.compile(first);
+                break;
+        }
+        
+        while (s.hasNext()){
+            String e = s.next();
+            switch(e){
+                case "WHERE":
+                    fs = FilterState.WHERE;
+                    break;
+                case "SET":
+                    fs = FilterState.SET;
+                    break;
+                case "IGNORE":
+                    String i = s.next();
+                    if (i.toLowerCase().equals("all")) f.ignoreALL = true;
+                    else f.ignore = Pattern.compile(i);
+                    break;
+                default:
+                    switch(fs){
+                        case WHERE:
+                            if (e.contains("type")){
+                                f.matchType = true;
+                                Scanner type1 = new Scanner(e).useDelimiter("=");
+                                type1.next();
+                                Scanner type2 = new Scanner(type1.next()).useDelimiter(",");
+                                
+                                while (type2.hasNext()){
+                                    switch(type2.next().toLowerCase()){
+                                        case "eshopapp":
+                                            f.find.type |= 0b0000000001;
+                                            break;
+                                        case "downloadplaychild":
+                                            f.find.type |= 0b0000000010;
+                                            break;
+                                        case "demo":
+                                            f.find.type |= 0b0000000100;
+                                            break;
+                                        case "updatepatch":
+                                            f.find.type |= 0b0000001000;
+                                            break;
+                                        case "dlc":
+                                            f.find.type |= 0b0000010000;
+                                            break;
+                                        case "dsiware":
+                                            f.find.type |= 0b0000100000;
+                                            break;
+                                        case "system":
+                                            f.find.type |= 0b0001000000;
+                                            break;
+                                        case "dsisystemapp":
+                                            f.find.type |= 0b0010000000;
+                                            break;
+                                        case "dsisystemdataarchives":
+                                            f.find.type |= 0b0100000000;
+                                            break;
+                                        case "mystery":
+                                            f.find.type |= 0b1000000000;
+                                            break;
+                                    }
+                                }
+                            }else if(e.contains("cid")){
+                                f.matchCID = true;
+                                Scanner cid = new Scanner(e).useDelimiter("=");
+                                cid.next();
+                                //f.find.cid = Util.toByteArray(cid.next());
+                                f.find.cid = Pattern.compile(cid.next());
+                            }else{
+                                switch(e){
+                                    case "preinstalled":
+                                        f.matchBitmask = true;
+                                        f.find.preinstalled = true;
+                                        break;
+                                    case "build":
+                                        f.matchBitmask = true;
+                                        f.find.build = true;
+                                        break;
+                                    case "personal":
+                                        f.matchBitmask = true;
+                                        f.find.personal = true;
+                                        break;
+                                    case "patch":
+                                        f.matchBitmask = true;
+                                        f.find.patch = true;
+                                        break;
+                                    case "ignore":
+                                        f.matchBitmask = true;
+                                        f.find.ignore = true;
+                                        break;
+                                    case "download":
+                                        f.matchBitmask = true;
+                                        f.find.download = true;
+                                        break;
+                                }
+                            }
+                            break;
+                        case SET:
+                            //preinstalled build personal patch ignore download
+                            switch(e){
+                                case "build":
+                                    f.set.build = true;
+                                    break;
+                                case "personal":
+                                    f.set.personal = true;
+                                    break;
+                                case "patch":
+                                    f.set.patch = true;
+                                    break;
+                                case "ignore":
+                                    f.set.ignore = true;
+                                    f.set.download = false;
+                                    break;
+                                case "download":
+                                    f.set.download = true;
+                                    f.set.ignore = false;
+                                    break;
+                                }
+                            break;
+                    }
+                    break;
+            }
+        }
+        // </editor-fold>
+        
+        this.entries.forEach((e)->{
+            //check if it's something to ignore
+            if (f.ignoreALL || (f.ignore!=null && f.ignore.matcher(e.ticket.titleIDStr).matches())){
+                e.build = false;
+                e.ignore = true;
+                e.download = false;
+                e.patch = false;
+                e.personal = false;
+                fireTableDataChanged();
+            }else{
+                boolean mTitle = false, mType = true, mBMask = true, mCID = true;
+                if (f.titleALL || (f.find.titleid!=null && f.find.titleid.matcher(e.ticket.titleIDStr).matches())) mTitle = true; //check the titleid
+                
+                if (f.matchType){ //are we looking for a type?
+                    mType = (f.find.type > 0 && f.typeCheck(e.ticket.type)); //check the type
+                }else{
+                    mType=true;
+                }
+                
+                //doesnt work right for some reason... TT.TT
+                //just look for something that's preinstalled
+                /*if (f.matchBitmask){ //are we looking for a bitmask?
+                    //int b1 = f.find.getBitmask();
+                    //int b2 = e.getBitmask();
+                    //mBMask = (b1 > 0 && ((b1 & b2) > 0)); //check the bitmask
+                    
+                    mBMask = f.find.preinstalled && e.preinstalled;
+                }else{
+                    mBMask = true;
+                }*/
+                
+                if (f.matchCID){ //are we looking for a cid?
+                    mCID = (f.find.cid != null && f.find.cid.matcher(e.ticket.consoleIDStr).matches()); //check the cid
+                }else{
+                    mBMask = true;
+                }
+                
+                if (mTitle && mType && mBMask && mCID){ //passed checks
+                    e.build = f.set.build;
+                    if (f.set.download){
+                        e.download = true;
+                        e.ignore = false;
+                    }
+                    if (f.set.ignore){
+                        e.ignore = true;
+                        e.download = false;
+                    }
+                    e.patch = f.set.patch;
+                    e.personal = f.set.personal;
+                    fireTableDataChanged();
+                }
+            }
+        });
+    }
+    //current command options
+    //titleid/regex/all WHERE type=type cid=regex SET build personal patch ignore download IGNORE titleid/regex/all
+    //ideal command options
+    //regex/all WHERE type=type cid=cid preinstalled build personal patch ignore download SET build personal patch ignore download IGNORE regex/all
+    
+    private class Filter{
+        public Pattern ignore = null;
+        public boolean titleALL = false;
+        public boolean ignoreALL = false;
+        public FIND find=new FIND();
+        public SET set=new SET();
+        
+        public boolean matchType = false;
+        public boolean matchBitmask = false;
+        public boolean matchCID = false;
+        
+        public class FIND {
+            public Pattern titleid = null;
+            public Pattern cid=null;
+            public int type = 0b000000000;
+            boolean build=false,preinstalled=false,personal=false,patch=false,ignore=false,download=false;
+            
+            public int getBitmask(){
+                int ret = 0b000000;
+                if (build) ret |= 0b000001;
+                if (preinstalled) ret |= 0b000010;
+                if (personal) ret |= 0b000100;
+                if (patch) ret |= 0b001000;
+                if (ignore) ret |= 0b010000;
+                if (download) ret |= 0b100000;
+                return ret;
+            }
+        }
+        public class SET {
+            boolean build=false;
+            boolean personal=false;
+            boolean patch=false;
+            boolean ignore=false;
+            boolean download=false;
+        }
+        
+        public boolean typeCheck(Ticket.Type e){
+            switch(e){
+                case eShopApp:
+                    if ((this.find.type & 0b000000001)>0) return true;
+                    break;
+                case DownloadPlayChild:
+                    if ((this.find.type & 0b000000010)>0) return true;
+                    break;
+                case Demo:
+                    if ((this.find.type & 0b000000100)>0) return true;
+                    break;
+                case UpdatePatch:
+                    if ((this.find.type & 0b000001000)>0) return true;
+                    break;
+                case DLC:
+                    if ((this.find.type & 0b000010000)>0) return true;
+                    break;
+                case DSiWare:
+                    if ((this.find.type & 0b000100000)>0) return true;
+                    break;
+                case System:
+                    if ((this.find.type & 0b001000000)>0) return true;
+                    break;
+                case DSiSystemApp:
+                    if ((this.find.type & 0b001000000)>0) return true;
+                    break;
+                case DSiSystemDataArchives:
+                    if ((this.find.type & 0b010000000)>0) return true;
+                    break;
+                case Mystery:
+                    if ((this.find.type & 0b100000000)>0) return true;
+                    break;
+            }
+            return false;
         }
     }
 }

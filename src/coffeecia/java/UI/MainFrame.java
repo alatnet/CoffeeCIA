@@ -126,6 +126,7 @@ public class MainFrame extends javax.swing.JFrame {
         tblTitles = new javax.swing.JTable();
         btnDownload = new javax.swing.JButton();
         btnSelectFilter = new javax.swing.JButton();
+        txtFilter = new javax.swing.JTextField();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("CoffeeCIA");
@@ -355,12 +356,14 @@ public class MainFrame extends javax.swing.JFrame {
             }
         });
 
-        btnSelectFilter.setText("Select Filter");
+        btnSelectFilter.setText("Filter");
         btnSelectFilter.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 buttonActionPerformed(evt);
             }
         });
+
+        txtFilter.setText("regex");
 
         javax.swing.GroupLayout jPanel6Layout = new javax.swing.GroupLayout(jPanel6);
         jPanel6.setLayout(jPanel6Layout);
@@ -369,11 +372,13 @@ public class MainFrame extends javax.swing.JFrame {
             .addGroup(jPanel6Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel6Layout.createSequentialGroup()
+                    .addGroup(jPanel6Layout.createSequentialGroup()
+                        .addComponent(txtFilter)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(btnSelectFilter)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(btnDownload))
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE))
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 323, Short.MAX_VALUE))
                 .addContainerGap())
         );
         jPanel6Layout.setVerticalGroup(
@@ -384,7 +389,8 @@ public class MainFrame extends javax.swing.JFrame {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(btnDownload)
-                    .addComponent(btnSelectFilter))
+                    .addComponent(btnSelectFilter)
+                    .addComponent(txtFilter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
@@ -394,7 +400,7 @@ public class MainFrame extends javax.swing.JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jSplitPane1)
+            .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 825, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -410,7 +416,8 @@ public class MainFrame extends javax.swing.JFrame {
             case "Open File":
                 if (!ticketFileOpen) if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)  this.openFile(fc.getSelectedFile());
                 break;
-            case "Select Filter":
+            case "Filter":
+                tTableModel.filter(txtFilter.getText());
                 break;
             case "Download Selected":
                 tTableModel.execute();
@@ -594,5 +601,6 @@ public class MainFrame extends javax.swing.JFrame {
     private javax.swing.JProgressBar progTicketDB;
     private javax.swing.JTable tblTitles;
     private javax.swing.JTextArea txtAreaLog;
+    private javax.swing.JTextField txtFilter;
     // End of variables declaration//GEN-END:variables
 }
