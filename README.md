@@ -4,6 +4,7 @@ Features:
 - GUI
 - Multithreaded (Hard limit to 5 threads)
 - Filter Selection.
+- Reads http://3ds.essh.co/ xml file for title name list.  XML must have that format for proper usage.
 
 
 Issues:
