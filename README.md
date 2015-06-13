@@ -23,6 +23,20 @@ Example filter commands:
 
 **Java Runtime 8 minimum**
 
-
 Screenshots:
 ![Alt text](http://s5.postimg.org/76k2zdgav/Screenshot.png)
+
+XML File Format:
+
+```XML
+<releases>
+  <release>
+    <name>title name 1</name>
+    <titleid>0000000000000000</titleid>
+  </release>
+  <release>
+    <name>title name 2</name>
+    <titleid>0000000000000001</titleid>
+  </release>
+</releases>
+```
