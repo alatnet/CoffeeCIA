@@ -26,10 +26,10 @@ public class CoffeeCIA_MAIN {
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException ex) {
             Logger.getLogger(CoffeeCIA_MAIN.class.getName()).log(Level.SEVERE, null, ex);
         }
-        if (File.separatorChar == '/'){
+        /*if (File.separatorChar == '/'){
             UNIX = true;
             makecdncia = "make_cdn_cia";
-        }
+        }*/
     }
     
     public static boolean UNIX=false;
@@ -42,6 +42,10 @@ public class CoffeeCIA_MAIN {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+        if (File.separatorChar == '/'){
+            UNIX = true;
+            makecdncia = "make_cdn_cia";
+        }
         MainFrame mFrame = new MainFrame();
         mFrame.setVisible(true);
     }

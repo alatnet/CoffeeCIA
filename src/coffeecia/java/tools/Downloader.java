@@ -49,7 +49,7 @@ public class Downloader {
         URL url;
         URLConnection connection;
         InputStream input;
-        byte[] buffer;
+        byte[] buffer = new byte[4096];
         
         //create the build directory
         File bDir = new File(buildDir + File.separatorChar + ticket.titleIDStr);
@@ -77,7 +77,6 @@ public class Downloader {
                     url = new URL(baseURL+ticket.titleIDStr+"/cetk");
                     connection = url.openConnection();
                     input = connection.getInputStream();
-                    buffer = new byte[4096];
                     try (OutputStream output = new FileOutputStream(cetk)) {
                         int n;
                         while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
@@ -108,7 +107,6 @@ public class Downloader {
                 url = new URL(baseURL+ticket.titleIDStr+"/tmd");
                 connection = url.openConnection();
                 input = connection.getInputStream();
-                buffer = new byte[4096];
                 try (OutputStream output = new FileOutputStream(tmd)) {
                     int n;
                     while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
@@ -136,15 +134,15 @@ public class Downloader {
         
         synchronized(sync_status) { this.status = Status.CID; }
         
+        byte cID[] = new byte[0x04];
+        byte cIDLenByte[] = new byte[0x10-0x08];
+        
         for (int i=0;i<contentCount;i++){
             synchronized(sync) { this.currcid = i; }
             
             int cOffs = 0xB04+(0x30*i);
-            byte cID[] = new byte[0x04];
-            System.arraycopy(tmdBuff, cOffs, cID, 0, 0x04);
-            
-            byte cIDLenByte[] = new byte[0x10-0x08];
-            System.arraycopy(tmdBuff, cOffs+0x08, cIDLenByte, 0, 0x10-0x08);
+            System.arraycopy(tmdBuff, cOffs, cID, 0, 0x04);  //copy the cid.
+            System.arraycopy(tmdBuff, cOffs+0x08, cIDLenByte, 0, 0x10-0x08); //copy the cid size.
             int cIDLen = Integer.parseInt(Util.toHexString(cIDLenByte), 16);
             
             synchronized(sync){
@@ -165,7 +163,6 @@ public class Downloader {
                 }
                 
                 input = connection.getInputStream();
-                buffer = new byte[4096];
                 try (OutputStream output = new FileOutputStream(FcID)) {
                     int n;
                     while ((n = input.read(buffer)) != -1){
@@ -194,7 +191,6 @@ public class Downloader {
                 }
                 
                 input = connection.getInputStream();
-                buffer = new byte[4096];
                 try (OutputStream output = new FileOutputStream(FcID)) {
                     int n;
                     while ((n = input.read(buffer)) != -1){
@@ -220,22 +216,24 @@ public class Downloader {
         synchronized(sync) { 
             this.numcid = -1;
             this.currcid = -1;
+            this.downloadSize = -1;
         }
     }
     
-    public int numCID(){ synchronized(sync) { return this.numcid; } }
-    public int currCID() { synchronized(sync) { return this.currcid; } }
+    public int numCID(){ synchronized(sync) { return this.numcid; } }  //number of cid's.
+    public int currCID() { synchronized(sync) { return this.currcid; } }  //current cid downloading.
     
+    //current cid file size.
     public String fsCID(){
         synchronized(sync) {
             if (this.fileSize == -1) return "?";
             return Util.toFileSize(this.fileSize);
         }
     }
-    public long fsCIDbytes() { synchronized(sync){ return this.fileSize; } }
-    public String downCID(){ synchronized(sync) { return Util.toFileSize(this.downloadSize); } }
+    public long fsCIDbytes() { synchronized(sync){ return this.fileSize; } } //current cid file size in bytes.
+    public String downCID(){ synchronized(sync) { return Util.toFileSize(this.downloadSize); } } //current cid downloaded size.
     
-    public long downCIDbytes() { synchronized(sync){ return this.downloadSize; } }
+    public long downCIDbytes() { synchronized(sync){ return this.downloadSize; } } //current cid downloaded size in bytes.
     
-    public Status currStatus(){ synchronized(sync_status) { return this.status; } }
+    public Status currStatus(){ synchronized(sync_status) { return this.status; } } //current status of the downloader.
 }

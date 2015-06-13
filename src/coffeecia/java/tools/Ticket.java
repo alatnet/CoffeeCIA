@@ -77,7 +77,7 @@ public class Ticket {
         String titleSub = titleID.substring(4,8);
         if ((Integer.parseInt(titleSub, 16) & 0x10) != 0) return Type.System;
         
-        switch(titleSub){
+        switch(titleSub.toLowerCase()){
             case "0000":
                 return Type.eShopApp;
             case "0001":
@@ -85,17 +85,14 @@ public class Ticket {
             case "0002":
                 return Type.Demo;
             case "000e":
-            case "000E":
                 return Type.UpdatePatch;
             case "008c":
-            case "008C":
                 return Type.DLC;
             case "8004":
                 return Type.DSiWare;
             case "8005":
                 return Type.DSiSystemApp;
             case "800f":
-            case "800F":
                 return Type.DSiSystemDataArchives;
             default:
                 return Type.Mystery;

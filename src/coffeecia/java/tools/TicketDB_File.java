@@ -46,8 +46,8 @@ public class TicketDB_File {
         File f = this.file;
         if (!this.useFile) f = new File(this.filestr);
         synchronized(sync2){ this.size = f.length(); }
+        
         try (FileInputStream fis = new FileInputStream(f)) {
-            
             byte b[] = new byte[1];
             byte ticketRoot[] = new byte[26];
             
@@ -60,22 +60,22 @@ public class TicketDB_File {
                     fis.skip(-26);
                     
                     if (ticketRootString.contains("Root-CA00000003-XS0000000c")){ //it's something! let's see if it's a ticket.
-                        fis.skip(0xB1-0x01);
+                        fis.skip(0xB0); //0xB1-0x01
                         fis.read(b);
                         int commonKeyIndex = b[0];
-                        fis.skip(-(0xB1-0x01));
+                        fis.skip(-(0xB0)); //0xB1-0x01
                         if (commonKeyIndex > 5) continue; //not a ticket
                         
-                        fis.skip(0x7C-0x01);
+                        fis.skip(0x7B); //0x7C-0x01
                         fis.read(b);
-                        fis.skip(-(0x7C-0x01));
+                        fis.skip(-(0x7B)); //0x7C-0x01
                         if (b[0] != 0x1) continue; //not a ticket
                         
-                        byte ticketData[] = new byte[0x210-(-0x140)];
+                        byte ticketData[] = new byte[0x350]; //0x210-(-0x140)
                        
-                        fis.skip(-(0x140+0x02));
+                        fis.skip(-(0x142)); //0x140+0x02
                         fis.read(ticketData);
-                        synchronized(sync){ this.currpos+=(0x210-(-0x140)); }
+                        synchronized(sync){ this.currpos+=(0x350); } //0x210-(-0x140)
                         
                         synchronized(sync2){ this.tickets.add(new Ticket(ticketData)); }
                     }else fis.skip(1);

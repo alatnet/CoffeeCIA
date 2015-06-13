@@ -9,7 +9,6 @@ import coffeecia.java.CoffeeCIA_MAIN;
 import coffeecia.java.tools.Builder;
 import coffeecia.java.tools.Downloader;
 import coffeecia.java.tools.Ticket;
-import coffeecia.java.tools.Util;
 import coffeecia.java.tools.XMLTitleList;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,7 +24,7 @@ import javax.swing.table.AbstractTableModel;
  */
 public class TitlesTableModel extends AbstractTableModel {
     final private String[] columnNames = { "TitleID", "ConsoleID", "Type", "Preinstalled", "Build", "Personal", "Patch", "Ignore", "Download", "Status" };
-    final private String[] columnNamesXML = {"Title", "TitleID", "ConsoleID", "Type", "Preinstalled", "Build", "Personal", "Patch", "Ignore", "Download", "Status" };
+    final private String[] columnNamesXML = { "Title", "TitleID", "ConsoleID", "Type", "Preinstalled", "Build", "Personal", "Patch", "Ignore", "Download", "Status" };
     
     private XMLTitleList xmlTitles = null;
     private boolean usingXML = false;
@@ -57,6 +56,9 @@ public class TitlesTableModel extends AbstractTableModel {
     public void setXMLTitles(XMLTitleList xmlTitles){
         this.usingXML = true;
         this.xmlTitles = xmlTitles;
+        
+        entries.forEach((e)->{ e.title = xmlTitles.getTitle(e.ticket.titleID); });
+        
         this.fireTableDataChanged();
     }
     
@@ -89,7 +91,10 @@ public class TitlesTableModel extends AbstractTableModel {
             e.status = "Bad Ticket. (Ignored)";
         }
         
-        if (this.usingXML) e.title = xmlTitles.getTitle(entry.titleID);
+        if (this.usingXML){
+            e.title = xmlTitles.getTitle(entry.titleID);
+            System.out.println(e.title + "=" + entry.titleIDStr);
+        }
         
         entries.add(e);
         fireTableRowsInserted(entries.size() - 1, entries.size() - 1);
@@ -304,40 +309,42 @@ public class TitlesTableModel extends AbstractTableModel {
         Logger.getGlobal().log(Level.INFO, "Beginning download.");
         
         //manager thread - separate it from ui.
-        new Thread(new Runnable(){
-            @Override
-            public void run() {
-                ArrayList<Entry> toExecute = new ArrayList<>();
-                ArrayList<workerThread> runningWorkers = new ArrayList<>();
-                entries.forEach((e)->{toExecute.add(e);});
-                
-                //dispatcher thread
-                new Thread(() -> {
-                    while (!toExecute.isEmpty()){
-                        while (runningWorkers.size()<runningSize){
-                            Entry eT = toExecute.remove(0);
-                            workerThread wT = new workerThread(eT,runningWorkers);
-                            synchronized (notifyObj) {
-                                runningWorkers.add(wT);
-                                wT.start();
-                            }
+        new Thread(() -> {
+            ArrayList<Entry> toExecute = new ArrayList<>();
+            ArrayList<workerThread> runningWorkers = new ArrayList<>();
+            entries.forEach((e)->{toExecute.add(e);});
+            
+            //dispatcher thread
+            Thread dispatch = new Thread(() -> {
+                while (!toExecute.isEmpty()){
+                    while (runningWorkers.size()-runningSize<runningSize){
+                        Entry eT = toExecute.remove(0);
+                        workerThread wT = new workerThread(eT,runningWorkers);
+                        synchronized (notifyObj) {
+                            runningWorkers.add(wT);
+                            wT.start();
                         }
-                        try { synchronized(notifyObj) { notifyObj.wait(); } } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
-                        //runningWorkers.forEach((wT)->{ if (!wT.running) runningWorkers.remove(wT); }); //remove any working threads that are done.
                     }
-                    
-                    //wating for the remaining workers to finish.
-                    while(!runningWorkers.isEmpty()){
-                        
-                            //runningWorkers.forEach((wT)->{ if (!wT.running) runningWorkers.remove(wT); }); //remove any working threads that are done.
-                            //try { synchronized(notifyObj) { notifyObj.wait(); } } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
-                        try { Thread.sleep(10); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
-                    }
-                }).start();
+                    try { synchronized(notifyObj) { notifyObj.wait(); } } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                    //runningWorkers.forEach((wT)->{ if (!wT.running) runningWorkers.remove(wT); }); //remove any working threads that are done.
+                }
+                
+                //wating for the remaining workers to finish.
+                while(!runningWorkers.isEmpty()){
+                    //runningWorkers.forEach((wT)->{ if (!wT.running) runningWorkers.remove(wT); }); //remove any working threads that are done.
+                    //try { synchronized(notifyObj) { notifyObj.wait(); } } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                    try { Thread.sleep(50); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                }
                 
                 Logger.getGlobal().log(Level.INFO, "Download finished.");
-                running = false;
-            }
+            });
+            
+            //start the dispatch thread and wait for it to finish.
+            dispatch.start();
+            try {
+                dispatch.join();
+            } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+            running = false;
         }).start();
     }
     
@@ -427,7 +434,7 @@ public class TitlesTableModel extends AbstractTableModel {
                         default:
                             dStatus = true;
                     }
-                    try { Thread.sleep(10); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
+                    try { Thread.sleep(50); } catch (InterruptedException ex) { Logger.getLogger(TitlesTableModel.class.getName()).log(Level.SEVERE, null, ex); }
                 }
                 
                 if (d.currStatus() == Downloader.Status.ERROR) this.error = true;

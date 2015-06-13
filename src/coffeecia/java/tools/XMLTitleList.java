@@ -57,23 +57,23 @@ public class XMLTitleList {
                 
                 switch (n.getNodeName()){
                     case "titleid":
-                        titleID = n.getNodeValue();
-                        System.out.println(titleID);
+                        titleID = n.getTextContent();
+                        //System.out.println(titleID);
                         break;
                     case "name":
                         titleName = n.getTextContent();
-                        System.out.println(titleName);
+                        //System.out.println(titleName);
                         break;
                 }
             }
             
             if ((titleName!=null && !titleName.isEmpty()) && (titleID!=null && !titleID.isEmpty()))
-                list.put(Util.toByteArray(titleID),titleName);
+                try{ if (titleID.length()%2 == 0) list.put(Util.toByteArray(titleID),titleName); }catch (IllegalArgumentException e){}
         }
         
-        this.list.forEach((k,v)->{
+        /*this.list.forEach((k,v)->{
             System.out.println(Util.toHexString(k) + "=" + v);
-        });
+        });*/
         this.isParsed = true;
     }
     
