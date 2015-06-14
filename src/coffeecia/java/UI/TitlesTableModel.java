@@ -93,7 +93,7 @@ public class TitlesTableModel extends AbstractTableModel {
         
         if (this.usingXML){
             e.title = xmlTitles.getTitle(entry.titleID);
-            System.out.println(e.title + "=" + entry.titleIDStr);
+            //System.out.println(e.title + "=" + entry.titleIDStr);
         }
         
         entries.add(e);
